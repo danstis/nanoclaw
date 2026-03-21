@@ -56,7 +56,7 @@ export class TelegramChannel implements Channel {
   async connect(): Promise<void> {
     this.bot = new Bot(this.botToken, {
       client: {
-        baseFetchConfig: { agent: https.globalAgent, compress: true },
+        baseFetchConfig: { agent: new https.Agent({ family: 4 }), compress: true },
       },
     });
 
