@@ -35,4 +35,7 @@ groups/global/*
 # Skills system (local per-installation state)
 .nanoclaw/
 
+# OMC (oh-my-claudecode) tool state
+.omc/
+
 agents-sdk-docs
