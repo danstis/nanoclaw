@@ -26,6 +26,7 @@ import {
   stopContainer,
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
+import { readEnvFile } from './env.js';
 import { validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
@@ -238,6 +239,13 @@ function buildContainerArgs(
     args.push('-e', 'ANTHROPIC_API_KEY=placeholder');
   } else {
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
+  }
+
+  // Pass model override when configured (e.g. via OPENROUTER_MODEL)
+  const modelEnv = readEnvFile(['OPENROUTER_MODEL', 'ANTHROPIC_MODEL']);
+  const model = modelEnv.OPENROUTER_MODEL || modelEnv.ANTHROPIC_MODEL;
+  if (model) {
+    args.push('-e', `ANTHROPIC_MODEL=${model}`);
   }
 
   // Runtime-specific args for host gateway resolution
