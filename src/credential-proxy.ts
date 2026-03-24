@@ -51,8 +51,27 @@ export function startCredentialProxy(
   const isHttps = upstreamUrl.protocol === 'https:';
   const makeRequest = isHttps ? httpsRequest : httpRequest;
 
+  // When upstreamUrl has a path prefix (e.g. https://openrouter.ai/api),
+  // we must prepend it to every forwarded request path.
+  const upstreamBasePath =
+    upstreamUrl.pathname === '/' ? '' : upstreamUrl.pathname.replace(/\/$/, '');
+
+  // Anthropic-specific endpoints that OpenRouter does not implement.
+  // Return a synthetic success so Claude Code considers itself logged in.
+  const isOpenRouterMode = !!secrets.OPENROUTER_API_KEY;
+
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
+      const requestPath = req.url || '/';
+
+      // When using OpenRouter, mock Anthropic-specific auth endpoints that
+      // OpenRouter doesn't have — otherwise Claude Code reports "Not logged in".
+      if (isOpenRouterMode && requestPath.split('?')[0] === '/api/auth/status') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ status: 'logged_in' }));
+        return;
+      }
+
       const chunks: Buffer[] = [];
       req.on('data', (c) => chunks.push(c));
       req.on('end', () => {
@@ -90,7 +109,7 @@ export function startCredentialProxy(
           {
             hostname: upstreamUrl.hostname,
             port: upstreamUrl.port || (isHttps ? 443 : 80),
-            path: req.url,
+            path: upstreamBasePath + requestPath,
             method: req.method,
             headers,
           } as RequestOptions,
